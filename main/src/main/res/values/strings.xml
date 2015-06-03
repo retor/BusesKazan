@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">BussesKazan</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="baseUrl">http://data.kzn.ru:8082/api/v0/dynamic_datasets/bus.json</string>
+</resources>
