@@ -1,57 +1,109 @@
 package com.retor.busseskazan.main;
 
-import android.content.Context;
-import android.content.DialogInterface;
-import android.location.LocationManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.AlertDialog;
+import android.widget.AdapterView;
 import android.widget.Spinner;
-import com.google.android.gms.maps.CameraUpdate;
-import com.google.android.gms.maps.CameraUpdateFactory;
+
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.LatLng;
-import com.retor.busseskazan.main.presenterImpl.RxPresenter;
+import com.retor.busseskazan.main.di.ApiModule;
+import com.retor.busseskazan.main.di.activity.DaggerActivityComponent;
+import com.retor.busseskazan.main.di.app.AppModule;
+import com.retor.busseskazan.main.di.interactors.ForInteractorsModule;
+import com.retor.busseskazan.main.di.interactors.InteractorsModule;
+import com.retor.busseskazan.main.di.presenter.PresenterModule;
+import com.retor.busseskazan.main.di.view.ViewModule;
+import com.retor.busseskazan.main.presenter.Presenter;
+import com.retor.busseskazan.main.view.View;
 
-public class MapsActivity extends FragmentActivity {
+import javax.inject.Inject;
+
+import butterknife.Bind;
+import butterknife.ButterKnife;
+import butterknife.OnItemSelected;
+
+public class MapsActivity extends FragmentActivity implements View {
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
-    private IPresenter presenter;
-    private Spinner spinner;
+    private ProgressDialog progressDialog;
+    private int spinPos;
+
+    @Inject
+    protected Presenter presenter;
+    @Bind(R.id.spinner)
+    Spinner spinner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         setUpMapIfNeeded();
-        if (isNetworkConnected()) {
-            presenter = new RxPresenter(this);
-            presenter.loadItems();
-            spinner = (Spinner) findViewById(R.id.spinner);
-            if (savedInstanceState != null)
-                spinner.setSelection(savedInstanceState.getInt("position"));
-            getSupportFragmentManager().findFragmentById(R.id.map).setRetainInstance(true);
+        ButterKnife.bind(this);
+        if (savedInstanceState != null) {
+            spinner.setSelection(savedInstanceState.getInt("position"));
+        }
+        if (mMap != null) {
+            begin();
         } else {
-            showNetworkAlert();
+            showAlert("No map or Google Service is old");
         }
     }
 
-    private boolean isNetworkConnected() {
-        NetworkInfo ni = ((ConnectivityManager) getApplicationContext().getSystemService(CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
-        return ni != null && ni.isConnected();
+    private void begin() {
+        injectThis();
+        initProgress();
+        getSupportFragmentManager().findFragmentById(R.id.map).setRetainInstance(true);
+        presenter.getData(this);
     }
 
-    private void showNetworkAlert() {
-        android.app.AlertDialog al = DialogsBuilder.createAlert(this, "No network connection");
-        al.setOnDismissListener(new DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(DialogInterface dialog) {
-                dialog.dismiss();
-            }
-        });
-        al.show();
+    private void initProgress() {
+        this.progressDialog = new ProgressDialog(this);
+        progressDialog.setTitle("Loading");
+        progressDialog.setMessage("Loading...");
+        progressDialog.setCancelable(false);
+    }
+
+    private void injectThis() {
+        DaggerActivityComponent.builder()
+                .appModule(new AppModule(getApplication()))
+                .forInteractorsModule(new ForInteractorsModule(spinner, mMap))
+                .interactorsModule(new InteractorsModule())
+                .apiModule(new ApiModule())
+                .viewModule(new ViewModule(this))
+                .presenterModule(new PresenterModule())
+                .build()
+                .inject(this);
+    }
+
+    @Override
+    public void showProgress() {
+        if (progressDialog != null && !progressDialog.isShowing())
+            progressDialog.show();
+    }
+
+    @Override
+    public void closeProgress() {
+        if (progressDialog.isShowing())
+            progressDialog.dismiss();
+    }
+
+    @Override
+    public void showError(final String msg) {
+        showAlert(msg);
+    }
+
+    @OnItemSelected(R.id.spinner)
+    protected void onItemSelected(final AdapterView<?> parent, final int position) {
+        String tmp = parent.getItemAtPosition(position).toString();
+        presenter.onNumberSelected(tmp);
+        spinPos = position;
+    }
+
+    private void showAlert(String msg) {
+        new AlertDialog.Builder(this).setMessage(msg).create().show();
     }
 
     @Override
@@ -69,39 +121,13 @@ public class MapsActivity extends FragmentActivity {
             // Check if we were successful in obtaining the map.
             if (mMap != null) {
                 mMap.setMyLocationEnabled(true);
-                setUpMap();
             }
         }
     }
 
-    private boolean isLocationEnabled() {
-        LocationManager lm = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        return !(!lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) && !lm.isProviderEnabled(LocationManager.GPS_PROVIDER) && !lm.isProviderEnabled(LocationManager.GPS_PROVIDER));
-    }
-
-    private void setupMyPosition() {
-        if (mMap.isMyLocationEnabled() && mMap.getMyLocation() != null) {
-            CameraUpdate camera = CameraUpdateFactory.newLatLngZoom(new LatLng(mMap.getMyLocation().getLatitude(), mMap.getMyLocation().getLongitude()), 14);
-            mMap.moveCamera(camera);
-        }
-    }
-
-    /**
-     * This is where we can add markers or lines, add listeners or move the camera. In this case, we
-     * just add a marker near Africa.
-     * <p/>
-     * This should only be called once and when we are sure that {@link #mMap} is not null.
-     */
-    private void setUpMap() {
-/*        if (isLocationEnabled())
-            setupMyPosition();*/
-//        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
-    }
-
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        if (spinner != null)
-            outState.putInt("position", (int) spinner.getSelectedItemId());
         super.onSaveInstanceState(outState);
+        outState.putInt("position", spinPos);
     }
 }

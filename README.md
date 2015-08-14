@@ -1,6 +1,7 @@
 # BussesKazan
 Simple app working with GoogleMap
 <br>
-Show busses in Kazan city
+Show busses in Kazan city(Loading data from http://data.kzn.ru/dinamic_datasets/bus)
 <br>
-Loading data with Rx from open server
+Using: Retrofit, OkHttp, RxAndroid, Dagger 2, ButterKnife
+
