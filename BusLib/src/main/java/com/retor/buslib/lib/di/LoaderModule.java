@@ -14,13 +14,15 @@ import dagger.Provides;
  */
 @Module
 public class LoaderModule {
-    @Provides@Singleton
-    OkHttpClient providesClient(){
+    @Provides
+    @Singleton
+    OkHttpClient providesClient() {
         return new OkHttpClient();
     }
 
-    @Provides@Singleton
-    ServiceCreator providesServiceCreator(OkHttpClient client){
-        return new LoadService(client);
+    @Provides
+    @Singleton
+    ServiceCreator providesServiceCreator(LoadService service) {
+        return service;
     }
 }

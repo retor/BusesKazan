@@ -2,6 +2,8 @@ package com.retor.buslib.lib.services;
 
 import com.squareup.okhttp.OkHttpClient;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.inject.Inject;
 
 import retrofit.RequestInterceptor;
@@ -16,6 +18,8 @@ public class LoadService implements ServiceCreator {
 
     @Inject
     public LoadService(final OkHttpClient okHttpClient) {
+        okHttpClient.setConnectTimeout(5000, TimeUnit.MILLISECONDS);
+        okHttpClient.setRetryOnConnectionFailure(true);
         this.okHttpClient = okHttpClient;
     }
 
@@ -23,6 +27,7 @@ public class LoadService implements ServiceCreator {
     public <S> S createService(final Class<S> serviceClass) {
         RestAdapter.Builder builder = new RestAdapter.Builder()
                 .setEndpoint("http://data.kzn.ru:8082/api/v0")
+                .setLogLevel(RestAdapter.LogLevel.FULL)
                 .setClient(new OkClient(okHttpClient))
                 .setRequestInterceptor(new RequestInterceptor() {
                     @Override

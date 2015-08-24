@@ -1,7 +1,5 @@
 package com.retor.buslib.lib;
 
-import com.retor.buslib.lib.di.DaggerLoaderComponent;
-import com.retor.buslib.lib.di.LoaderModule;
 import com.retor.buslib.lib.methods.LoadMethod;
 import com.retor.buslib.lib.model.BusModel;
 import com.retor.buslib.lib.services.ServiceCreator;
@@ -17,15 +15,13 @@ import rx.Observable;
  */
 public class LoaderApi {
     private LoadMethod service;
-    @Inject
-    protected ServiceCreator creator;
 
-    public LoaderApi() {
-        DaggerLoaderComponent.builder().loaderModule(new LoaderModule()).build().inject(this);
+    @Inject
+    public LoaderApi(ServiceCreator creator) {
         this.service = creator.createService(LoadMethod.class);
     }
 
-    public Observable<List<BusModel>> getBussesList(){
+    public Observable<List<BusModel>> getBussesList() {
         return service.getAllBusses();
     }
 }

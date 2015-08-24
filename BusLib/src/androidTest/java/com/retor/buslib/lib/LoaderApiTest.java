@@ -2,6 +2,8 @@ package com.retor.buslib.lib;
 
 import android.test.InstrumentationTestCase;
 
+import com.retor.buslib.lib.di.DaggerLoaderComponent;
+import com.retor.buslib.lib.di.LoaderModule;
 import com.retor.buslib.lib.model.BusModel;
 
 import org.junit.After;
@@ -9,6 +11,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+
+import javax.inject.Inject;
 
 import rx.observers.TestObserver;
 
@@ -21,7 +25,7 @@ public class LoaderApiTest extends InstrumentationTestCase{
 
     @Before
     public void setUp() throws Exception {
-        api = new LoaderApi();
+        api = DaggerLoaderComponent.builder().loaderModule(new LoaderModule()).build().LOADER_API();
         observer = new TestObserver<List<BusModel>>();
     }
 
